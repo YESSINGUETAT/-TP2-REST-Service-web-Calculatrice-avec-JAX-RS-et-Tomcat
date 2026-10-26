@@ -15,7 +15,7 @@
 3. [Partie A : Conception du Service (Questions A.2)](#-partie-a--conception-du-service)
 4. [Partie C : Premier Service REST - La Somme (Question C.1)](#-partie-c--premier-service-rest--la-somme)
 5. [Partie D : Compléter la Calculatrice (Questions D.1, D.2, D.3)](#-partie-d--compléter-la-calculatrice)
-6. [Partie E : Échanger des Données en JSON (Questions E.1, E.2)](#-partie-e--échanger-des-données-en-json)
+6. [Partie E : Échanger des Données en JSON (Questions E.1, E.2, E.4)](#-partie-e--échanger-des-données-en-json)
 7. [Partie F : La Ressource « operations » (Tests F.3, F.4, F.5)](#-partie-f--la-ressource--operations-)
 8. [Questions de Synthèse](#-questions-de-synthèse)
 
@@ -42,9 +42,9 @@ tp2-ms/
 ├── pom.xml
 ├── capture/                  # Captures d'écran des tests curl et Postman
 ├── question/
-│   └── reponse               # Brouillon des réponses
-├── operation.json            # Payload exemple pour POST /operations
-├── modification.json         # Payload exemple pour PUT /operations
+│   └── reponse               # Fichier des réponses
+├── operation.json            # Payload d'exemple pour POST /operations
+├── modification.json         # Payload d'exemple pour PUT /operations
 └── src/
     └── main/
         └── java/
@@ -109,9 +109,12 @@ tp2-ms/
 **Remplacez GET par POST dans Postman et renvoyez la requête sur `/api/calcul/somme?a=2&b=3`. Quel code de statut obtenez-vous ? Expliquez-le.**
 
 - **Code de statut obtenu :** `405 Method Not Allowed`
-- **Capture d'écran correspondante :** [`capture/Capture d'écran 2026-10-24 161649.png`](capture/Capture%20d'écran%202026-10-24%20161649.png)
 - **Explication :**  
-  La méthode `somme` dans la classe Java `CalculRest` est annotée exclusivement avec `@GET`. Le serveur Tomcat / Jersey reconnaît l'URI `/calcul/somme`, mais constate qu'aucune méthode Java n'est mappée pour traiter le verbe HTTP `POST` sur cette route. Il renvoie donc une erreur 405 pour indiquer que la méthode HTTP n'est pas autorisée sur cette ressource.
+  La méthode `somme` dans la classe Java `CalculRest` est annotée exclusivement avec `@GET`. Le serveur Tomcat / Jersey reconnaît l'URI `/calcul/somme`, mais constate qu'aucune méthode Java n'est configurée pour traiter le verbe HTTP `POST` sur cette route. Il renvoie donc une erreur 405 pour indiquer que la méthode HTTP n'est pas autorisée sur cette ressource.
+
+<p align="center">
+  <img src="capture/Capture%20d'écran%202026-10-24%20161649.png" alt="POST sur calcul/somme renvoie 405 Method Not Allowed" width="700"/>
+</p>
 
 ---
 
@@ -122,12 +125,18 @@ tp2-ms/
 #### 1. Requête `GET /RestWebApp/api/calcul/somme?a=2` (paramètre `b` absent) :
 - **Statut obtenu :** `200 OK`
 - **Corps obtenu :** `2`
-- **Capture d'écran :** [`capture/Capture d'écran 2026-10-24 162423.png`](capture/Capture%20d'écran%202026-10-24%20162423.png)
+
+<p align="center">
+  <img src="capture/Capture%20d'écran%202026-10-24%20162423.png" alt="GET somme avec b absent" width="700"/>
+</p>
 
 #### 2. Requête `GET /RestWebApp/api/calcul/somme?a=abc&b=3` (paramètre `a` non entier) :
-- **Statut obtenu :** `404 Not Found` (ou `400 Bad Request` selon les configurations JAX-RS / Tomcat)
-- **Corps obtenu :** Page HTML d'erreur standard de Tomcat
-- **Capture d'écran :** [`capture/Capture d'écran 2026-10-24 162507.png`](capture/Capture%20d'écran%202026-10-24%20162507.png)
+- **Statut obtenu :** `404 Not Found` (ou `400 Bad Request` selon configuration du conteneur)
+- **Corps obtenu :** Page d'erreur HTML Tomcat
+
+<p align="center">
+  <img src="capture/Capture%20d'écran%202026-10-24%20162507.png" alt="GET somme avec a=abc" width="700"/>
+</p>
 
 ---
 
@@ -135,19 +144,19 @@ tp2-ms/
 
 #### Question D.1 : Quelle valeur JAX-RS donne-t-il à un paramètre entier absent ?
 > **Réponse :**  
-> Si le paramètre annoté `@QueryParam` est de type primitif Java (`int`), JAX-RS lui affecte la valeur par défaut du type en Java, c'est-à-dire **`0`**. Ainsi, `somme(2, 0)` retourne `2`.  
-> *(Remarque : Si le type avait été l'objet wrapper `Integer`, sa valeur aurait été `null`).*
+> Si le paramètre annoté `@QueryParam` est de type primitif Java (`int`), JAX-RS lui affecte la valeur par défaut du type primitif en Java, c'est-à-dire **`0`**. Ainsi, `somme(2, 0)` retourne `2`.  
+> *(Remarque : Si le paramètre avait été de type objet `Integer`, sa valeur aurait été `null`).*
 
 #### Question D.2 : Quel statut obtenez-vous lorsque le paramètre n'est pas un entier ? La méthode somme a-t-elle été exécutée ?
 > **Réponse :**  
 > On obtient le statut HTTP **`404 Not Found`** (ou `400 Bad Request`).  
-> **Non**, la méthode `somme()` n'a **pas** été exécutée : JAX-RS échoue lors de la phase de désérialisation et de conversion du paramètre en entier (`Integer.parseInt`), ce qui interrompt immédiatement le traitement et rejette la requête avant tout appel à la méthode métier.
+> **Non**, la méthode Java `somme()` n'a **pas** été exécutée : JAX-RS échoue lors de la phase de désérialisation/conversion de la chaîne `"abc"` en entier, ce qui interrompt immédiatement le cycle de traitement et renvoie l'erreur sans exécuter le code de la méthode métier.
 
 #### Question D.3 : Quelle différence y a-t-il entre `@QueryParam` et `@PathParam` ? Laquelle de ces deux annotations utilisera-t-on pour lire l'identifiant dans `/operations/{id}` ?
 > **Réponse :**  
-> - **`@QueryParam`** extrait une valeur transmise dans les paramètres de la chaîne de requête URL après le point d'interrogation `?` (ex. `?a=2&b=3`). Ces paramètres sont typiquement utilisés pour filtrer, paginer ou passer des options secondaires.  
-> - **`@PathParam`** extrait un segment variable directement intégré dans le chemin de l'URI (ex. `/produit/{a}/{b}` ou `/operations/{id}`).  
-> Pour lire l'identifiant dans `/operations/{id}`, on utilise obligatoirement **`@PathParam("id")`**, car l'identifiant fait partie intégrante du chemin d'accès à la ressource.
+> - **`@QueryParam`** : extrait une variable située dans la chaîne de requête après le symbole `?` (ex. `?a=2&b=3`). Ces paramètres sont généralement optionnels et utilisés pour filtrer ou passer des options secondaires.  
+> - **`@PathParam`** : extrait une variable directement intégrée dans le gabarit du chemin d'accès de l'URI (ex. `/produit/{a}/{b}` ou `/operations/{id}`).  
+> Pour lire l'identifiant dans `/operations/{id}`, on utilise obligatoirement **`@PathParam("id")`**, car l'identifiant fait partie intégrante du chemin de la ressource.
 
 ---
 
@@ -158,28 +167,30 @@ tp2-ms/
 
 > **Réponse :**  
 > - **Qui effectue la conversion ?**  
->   La conversion automatique de l'objet Java `Resultat` en flux JSON est assurée par le fournisseur de liaison JSON de Jersey (`jersey-media-json-binding` / Jackson / JSON-B) configuré dans les dépendances Maven. Grâce à l'annotation `@Produces(MediaType.APPLICATION_JSON)`, JAX-RS sélectionne le bon `MessageBodyWriter` pour sérialiser l'objet.
+>   La conversion automatique de l'objet Java `Resultat` en flux JSON est assurée par le fournisseur de liaison JSON de Jersey (`jersey-media-json-binding` / Jackson / JSON-B) configuré dans le `pom.xml`. JAX-RS sélectionne le `MessageBodyWriter` adéquat en détectant l'annotation `@Produces(MediaType.APPLICATION_JSON)`.  
 > - **D'où viennent les noms des champs ?**  
->   Les noms `a`, `b`, `operation` et `resultat` proviennent des propriétés de la classe `Resultat`, découverts via la convention JavaBean à partir des accesseurs (*getters* : `getA()`, `getB()`, `getOperation()`, `getResultat()`).
+>   Les noms `a`, `b`, `operation` et `resultat` proviennent directement des propriétés de la classe `Resultat`, découverts via les accesseurs JavaBean (*getters* : `getA()`, `getB()`, `getOperation()`, `getResultat()`).
 
 ---
 
 ### Question E.2
 **Pourquoi la seconde requête (`curl -i -H "Accept: application/xml" ...`) est-elle refusée ?**
 
-- **Statut obtenu :** `406 Not Acceptable`
-- **Captures d'écran :**
-  - Accept `application/json` (200 OK) : [`capture/Capture d'écran 2026-10-24 170917.png`](capture/Capture%20d'écran%202026-10-24%20170917.png)
-  - Accept `application/xml` (406 Not Acceptable) : [`capture/Capture d'écran 2026-10-24 171020.png`](capture/Capture%20d'écran%202026-10-24%20171020.png)
+- **Statut obtenu :** `406 Not Acceptable`  
 - **Explication :**  
-  Le client spécifie via l'en-tête `Accept: application/xml` qu'il n'accepte qu'une réponse au format XML. Or, la ressource `sommeDetail` ne déclare produire que du JSON via `@Produces(MediaType.APPLICATION_JSON)`. Le serveur ne disposant d'aucun moyen de convertir la réponse au format demandé par le client (échec de négociation de contenu), il rejette la requête avec le statut `406 Not Acceptable`.
+  Le client indique dans son en-tête `Accept: application/xml` qu'il n'accepte qu'une réponse au format XML. Or, la ressource n'est configurée que pour produire du JSON via `@Produces(MediaType.APPLICATION_JSON)`. Le serveur ne pouvant satisfaire le format demandé lors de la négociation de contenu (*content negotiation*), il refuse la requête avec le code `406 Not Acceptable`.
+
+| Requête testée | Statut HTTP | Capture d'écran |
+| :--- | :---: | :--- |
+| `curl -i -H "Accept: application/json" .../somme/detail?a=2&b=3` | `200 OK` | `capture/Capture d'écran 2026-10-24 170917.png` |
+| `curl -i -H "Accept: application/xml" .../somme/detail?a=2&b=3` | `406 Not Acceptable` | `capture/Capture d'écran 2026-10-24 171020.png` |
 
 ---
 
 ### E.4 Exercice : divisionDetail en JSON
-- Méthode `GET /calcul/division/detail?a=10&b=2` avec `Accept: application/json`
-- **Statut :** `200 OK`
-- **Corps :** `{"a":10,"b":2,"operation":"division","resultat":5.0}`
+- **Requête :** `curl -i -H "Accept: application/json" "http://localhost:8080/tp2_ms_war_exploded/api/calcul/division/detail?a=10&b=2"`
+- **Statut obtenu :** `200 OK`
+- **Corps reçu :** `{"a":10,"b":2,"operation":"division","resultat":5.0}`
 - **Capture d'écran :** [`capture/Capture d'écran 2026-10-24 171609.png`](capture/Capture%20d'écran%202026-10-24%20171609.png)
 
 ---
@@ -190,13 +201,13 @@ tp2-ms/
 
 Base URL : `http://localhost:8080/tp2_ms_war_exploded/api/operations`
 
-| N° | Méthode & URI | Corps envoyé | Statut attendu | Corps & En-têtes attendus | Capture d'écran associée |
+| N° | Méthode & URI | Corps envoyé | Statut | Corps & En-têtes obtenus | Capture d'écran |
 | :---: | :--- | :--- | :---: | :--- | :--- |
-| **1** | `POST /operations` | `{"operateur":"somme","a":8,"b":2}` | `201 Created` | En-tête `Location: .../operations/1`<br>`{"a":8,"b":2,"id":1,"operateur":"somme","resultat":10.0}` | [`capture/Capture d'écran 2026-10-24 174755.png`](capture/Capture%20d'écran%202026-10-24%20174755.png) (curl)<br>[`capture/Capture d'écran 2026-10-24 175228.png`](capture/Capture%20d'écran%202026-10-24%20175228.png) (Postman) |
-| **2** | `POST /operations` | `{"operateur":"division","a":7,"b":2}` | `201 Created` | En-tête `Location: .../operations/2`<br>`{"a":7,"b":2,"id":2,"operateur":"division","resultat":3.5}` | [`capture/Capture d'écran 2026-10-24 175423.png`](capture/Capture%20d'écran%202026-10-24%20175423.png) |
-| **3** | `GET /operations` | *Aucun* | `200 OK` | Tableau JSON contenant toutes les opérations créées | [`capture/Capture d'écran 2026-10-24 175505.png`](capture/Capture%20d'écran%202026-10-24%20175505.png) |
-| **4** | `GET /operations/2` | *Aucun* | `200 OK` | Objet JSON de l'opération d'identifiant `2` | [`capture/Capture d'écran 2026-10-24 175535.png`](capture/Capture%20d'écran%202026-10-24%20175535.png) |
-| **5** | `GET /operations/99` | *Aucun* | `404 Not Found` | Corps vide ou `{"erreur":"Operation introuvable"}` | [`capture/Capture d'écran 2026-10-24 175611.png`](capture/Capture%20d'écran%202026-10-24%20175611.png) |
+| **1** | `POST /operations` | `{"operateur":"somme","a":8,"b":2}` | `201 Created` | `Location: .../operations/1`<br>`{"a":8,"b":2,"id":1,"operateur":"somme","resultat":10.0}` | [`capture/Capture d'écran 2026-10-24 174755.png`](capture/Capture%20d'écran%202026-10-24%20174755.png) (curl)<br>[`capture/Capture d'écran 2026-10-24 175228.png`](capture/Capture%20d'écran%202026-10-24%20175228.png) (Postman) |
+| **2** | `POST /operations` | `{"operateur":"division","a":7,"b":2}` | `201 Created` | `Location: .../operations/2`<br>`{"a":7,"b":2,"id":2,"operateur":"division","resultat":3.5}` | [`capture/Capture d'écran 2026-10-24 175423.png`](capture/Capture%20d'écran%202026-10-24%20175423.png) |
+| **3** | `GET /operations` | *Aucun* | `200 OK` | Tableau JSON contenant les opérations enregistrées | [`capture/Capture d'écran 2026-10-24 175505.png`](capture/Capture%20d'écran%202026-10-24%20175505.png) |
+| **4** | `GET /operations/2` | *Aucun* | `200 OK` | `{"a":7,"b":2,"id":2,"operateur":"division","resultat":3.5}` | [`capture/Capture d'écran 2026-10-24 175535.png`](capture/Capture%20d'écran%202026-10-24%20175535.png) |
+| **5** | `GET /operations/99` | *Aucun* | `404 Not Found` | `{"erreur":"Operation introuvable"}` | [`capture/Capture d'écran 2026-10-24 175611.png`](capture/Capture%20d'écran%202026-10-24%20175611.png) |
 | **6** | `POST /operations` | `{"operateur":"division","a":7,"b":0}` | `400 Bad Request` | `{"erreur":"Calcul impossible"}` | [`capture/Capture d'écran 2026-10-24 175720.png`](capture/Capture%20d'écran%202026-10-24%20175720.png) |
 | **7** | `POST /operations` | `{"operateur":"racine","a":9,"b":0}` | `400 Bad Request` | `{"erreur":"Calcul impossible"}` | [`capture/Capture d'écran 2026-10-24 175806.png`](capture/Capture%20d'écran%202026-10-24%20175806.png) |
 
@@ -214,27 +225,22 @@ Base URL : `http://localhost:8080/tp2_ms_war_exploded/api/operations`
 
 ### F.5 Supprimer une opération : DELETE
 
-Ordre d'exécution des requêtes de test :
-1. `DELETE /operations/3` (opération existante) :
-   - **Statut obtenu :** `204 No Content`
-   - **Corps :** Vide
+Ordre des tests de suppression :
+1. `DELETE /operations/3` (suppression d'une ressource existante) :
+   - **Statut obtenu :** `204 No Content` (corps vide)
    - **Capture d'écran :** [`capture/Capture d'écran 2026-10-24 182116.png`](capture/Capture%20d'écran%202026-10-24%20182116.png)
-2. `GET /operations/3` (vérification de la suppression) :
-   - **Statut obtenu :** `404 Not Found`
-   - **Corps :** `{"erreur":"Operation introuvable"}`
+2. `GET /operations/3` (vérification après suppression) :
+   - **Statut obtenu :** `404 Not Found` (`{"erreur":"Operation introuvable"}`)
    - **Capture d'écran :** [`capture/Capture d'écran 2026-10-24 182241.png`](capture/Capture%20d'écran%202026-10-24%20182241.png)
-3. `DELETE /operations/3` (suppression d'une ressource déjà supprimée) :
-   - **Statut obtenu :** `404 Not Found`
-   - **Corps :** `{"erreur":"Operation introuvable"}`
+3. `DELETE /operations/3` (deuxième suppression de la même ressource) :
+   - **Statut obtenu :** `404 Not Found` (`{"erreur":"Operation introuvable"}`)
    - **Capture d'écran :** [`capture/Capture d'écran 2026-10-24 182313.png`](capture/Capture%20d'écran%202026-10-24%20182313.png)
 
 ---
 
 ## 💡 Questions de Synthèse
 
-### 1. Tableau complet des opérations avec les codes de statut HTTP possibles
-
-> Capture d'écran du récapitulatif : [`capture/Capture d'écran 2026-10-24 182615.png`](capture/Capture%20d'écran%202026-10-24%20182615.png)
+### 1. Tableau récapitulatif des opérations avec les codes de statut HTTP
 
 | Verbe HTTP | URI | Rôle | Codes HTTP possibles |
 | :--- | :--- | :--- | :--- |
@@ -245,8 +251,12 @@ Ordre d'exécution des requêtes de test :
 | **POST** | `/operations` | Crée et enregistre une opération | `201 Created`, `400 Bad Request` |
 | **GET** | `/operations` | Retourne toutes les opérations enregistrées | `200 OK` |
 | **GET** | `/operations/{id}` | Retourne l'opération numéro `id` | `200 OK`, `404 Not Found` |
-| **PUT** | `/operations/{id}` | Modifie l'opération existante numéro `id` | `200 OK`, `400 Bad Request`, `404 Not Found` |
-| **DELETE** | `/operations/{id}` | Supprime l'opération existante numéro `id` | `204 No Content`, `404 Not Found` |
+| **PUT** | `/operations/{id}` | Modifie une opération existante | `200 OK`, `400 Bad Request`, `404 Not Found` |
+| **DELETE** | `/operations/{id}` | Supprime une opération existante | `204 No Content`, `404 Not Found` |
+
+<p align="center">
+  <img src="capture/Capture%20d'écran%202026-10-24%20182615.png" alt="Tableau récapitulatif des codes HTTP" width="700"/>
+</p>
 
 ---
 
@@ -270,16 +280,16 @@ Ordre d'exécution des requêtes de test :
 
 ### 3. Quelle différence y a-t-il entre JAX-RS et Jersey ?
 > **Réponse :**  
-> - **JAX-RS** (*Jakarta RESTful Web Services*) est une **spécification standard** de Jakarta EE définissant les interfaces et annotations (`@Path`, `@GET`, etc.) sans fournir de code exécutable.  
-> - **Jersey** est l'**implémentation logicielle concrète** de cette spécification (développée par Eclipse/GlassFish) qui fournit le moteur d'exécution, la sérialisation JSON, le cycle de vie des requêtes et l'intégration avec le conteneur servlet Tomcat.
+> - **JAX-RS** (*Jakarta RESTful Web Services*) est une **spécification standard** de Jakarta EE définissant les interfaces et annotations (`@Path`, `@GET`, etc.) sans code d'implémentation.  
+> - **Jersey** est l'**implémentation de référence** de cette spécification (développée par Eclipse/GlassFish). C'est le moteur concret qui fournit le code d'exécution, la sérialisation JSON, le traitement des requêtes et l'intégration avec le conteneur servlet Tomcat.
 
 ---
 
 ### 4. Quel est le rôle de Tomcat ? Pourquoi le projet produit-il un fichier .war et non un fichier .jar exécutable ?
 > **Réponse :**  
-> - **Rôle de Tomcat :** Tomcat est un conteneur de servlets (*Servlet Container*) et serveur web qui fournit l'environnement d'exécution réseau, gère le cycle de vie des composants web, écoute sur le port 8080 et dispatche les requêtes HTTP vers l'application.  
+> - **Rôle de Tomcat :** Tomcat est un conteneur de servlets (*Servlet Container*) et serveur web qui fournit l'environnement d'exécution réseau, gère le cycle de vie des composants web, écoute sur le port 8080 et dispatche les requêtes HTTP entrantes vers l'application.  
 > - **Pourquoi `.war` et non `.jar` ?**  
->   Le format `.war` (*Web Application Archive*) est le standard d'archivage déployable dans un conteneur d'applications externe tel que Tomcat. Contrairement aux architectures avec serveur embarqué (comme Spring Boot avec `.jar` autonome), ce TP repose sur un serveur Tomcat externe gérant le déploiement du livrable `.war`.
+>   Le format `.war` (*Web Application Archive*) est le standard d'archivage déployable dans un conteneur d'applications externe tel que Tomcat. Contrairement aux frameworks avec serveur embarqué (comme Spring Boot avec un `.jar` autonome), ce projet repose sur un serveur Tomcat externe qui héberge le fichier `.war`.
 
 ---
 
@@ -303,5 +313,3 @@ Ordre d'exécution des requêtes de test :
   - 1ère exécution : met à jour l'opération `id = 1` avec les nouvelles valeurs
   - 2ème exécution identique : réapplique les mêmes valeurs à l'opération `id = 1`
   - *Effet :* L'état final du système reste strictement inchangé après la première mise à jour.
-#   - T P 2 - R E S T - S e r v i c e - w e b - C a l c u l a t r i c e - a v e c - J A X - R S - e t - T o m c a t  
- 

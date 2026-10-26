@@ -1,0 +1,77 @@
+Question C.1. Remplacez GET par POST dans Postman et renvoyez la requête. Quel code de statut
+obtenez-vous ? Expliquez-le.
+Réponse c.1.(voir le photo dans github)Cela signifie que le serveur répond, mais que la ressource demandée n'accepte pas la méthode HTTP utilisée.
+Question D.1. Quelle valeur JAX-RS donne-t-il à un paramètre entier absent ?
+Réponse : Si un paramètre de type int est absent, JAX-RS lui attribue la valeur 0 par défaut.
+
+Question D.2. Quel statut obtenez-vous lorsque le paramètre n'est pas un entier ? La méthode somme a-t-elle été exécutée ?
+Réponse : On obtient généralement le statut HTTP 400 – Bad Request (requête incorrecte).
+
+Non, la méthode somme() n'a pas été exécutée, car JAX-RS échoue à convertir le paramètre en entier avant d'appeler la méthode.
+Question D.3. Quelle différence y a-t-il entre @QueryParam et @PathParam ? Laquelle de ces deux
+annotations utilisera-t-on pour lire l'identifiant dans /operations/{id} ?
+Réponse D.3
+- @QueryParam : permet de récupérer un paramètre situé dans la requête URL, après le symbole ?.
+- @PathParam : permet de récupérer un paramètre directement intégré dans le chemin de l'URL.
+Pour lire l'identifiant dans /operations/{id}, on utilise @PathParam("id"), car l'identifiant fait partie du chemin de l'URL.
+
+Réponse E.1
+
+La conversion de l'objet Java en texte JSON est effectuée automatiquement par le fournisseur JSON de Jersey, par exemple Jackson, grâce à la configuration de l'API REST.
+
+Les noms `a`, `b`, `operation` et `resultat` proviennent des attributs de la classe `Resultat`, accessibles grâce à leurs getters (`getA()`, `getB()`, `getOperation()` et `getResultat()`).
+
+Ainsi, Jersey et Jackson transforment automatiquement l'objet Java en JSON, sans qu'il soit nécessaire d'écrire manuellement le texte JSON.
+
+Question E.2. Pourquoi la seconde requête est-elle refusée ?
+Réponse E.2
+La seconde requête est refusée parce que le client demande une réponse au format XML avec Accept: application/xml, alors que la méthode sommeDetail() ne produit que du JSON, grâce à l'annotation @Produces(MediaType.APPLICATION_JSON).
+
+Le serveur ne peut donc pas satisfaire le format demandé et peut renvoyer une erreur HTTP 406 Not Acceptable.
+
+
+2. Les annotations JAX-RS utilisées dans le TP
+Annotation	Rôle
+@Path	Définit le chemin URI d'une ressource ou d'une méthode.
+@GET	Associe une méthode Java à une requête HTTP GET.
+@POST	Associe une méthode Java à une requête HTTP POST.
+@PUT	Associe une méthode Java à une requête HTTP PUT.
+@DELETE	Associe une méthode Java à une requête HTTP DELETE.
+@PathParam	Récupère une valeur présente dans l'URI, comme l'identifiant {id}.
+@Produces	Indique le format des données renvoyées, par exemple JSON.
+@Consumes	Indique le format des données acceptées, par exemple JSON.
+@QueryParam	Récupère un paramètre présent dans l'URL après ?.
+@Context	Permet d'accéder à des informations du contexte JAX-RS, comme UriInfo.
+
+3. Quelle différence y a-t-il entre JAX-RS et Jersey ?
+- JAX-RS est une spécification Java qui définit les règles et les annotations pour créer des services web REST.
+- Jersey est une implémentation de cette spécification qui permet de développer et d'exécuter ces services.
+Exemple : @GET est une annotation définie par JAX-RS, tandis que Jersey permet de l'utiliser concrètement dans l'application.
+4. Quel est le rôle de Tomcat ? Pourquoi un fichier .war et non un .jar exécutable ?
+Rôle de Tomcat : Tomcat est un serveur web et un conteneur de servlets qui héberge et exécute l'application web Java.
+
+Pourquoi .war ?
+- .war signifie Web Application Archive. Il contient l'application web et ses ressources pour les déployer sur Tomcat.
+- .jar exécutable est généralement utilisé pour lancer une application Java autonome avec une commande comme java -jar application.jar.
+Dans ce TP, le projet produit un .war parce qu'il est destiné à être déployé sur Tomcat, qui fournit l'environnement d'exécution web.
+5. Pourquoi conserver les opérations ne contredit-il pas le principe stateless ?
+Le principe stateless signifie que le serveur ne doit pas dépendre d'un état de session du client entre deux requêtes.
+
+Dans notre TP, le serveur conserve les opérations dans une collection en mémoire, mais chaque requête contient les informations nécessaires pour être traitée, notamment l'identifiant de l'opération.
+
+La liste des opérations est une donnée de l'application, et non un état de session propre à un client. Cela ne contredit donc pas le principe stateless.
+
+Attention : dans notre implémentation, les opérations sont stockées en mémoire et peuvent disparaître lors du redémarrage de Tomcat.
+6. Comparaison de la répétition des requêtes POST et PUT
+Cas 1 : répéter POST /operations
+
+Chaque requête crée une nouvelle ressource. Deux requêtes identiques peuvent donc créer deux opérations différentes, avec des identifiants distincts.
+
+Exemple :
+- Premier POST : création de l'opération id = 1.
+- Deuxième POST identique : création de l'opération id = 2.
+Cas 2 : répéter PUT /operations/1
+
+PUT modifie la ressource identifiée par 1. Si on envoie deux fois la même requête avec les mêmes données, l'opération conserve le même identifiant et le même contenu final.
+
+PUT est donc considéré comme idempotent, contrairement à POST dans ce scénario.
